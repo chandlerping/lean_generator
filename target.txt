@@ -1,0 +1,147 @@
+import algebra.group
+
+inductive quo
+| r1
+| r2
+| r3
+| r4
+
+open quo
+
+def quo_mul : quo->quo->quo
+| r1 r1 := r1
+| r1 r2 := r2
+| r1 r3 := r3
+| r1 r4 := r4
+| r2 r1 := r2
+| r2 r2 := r4
+| r2 r3 := r1
+| r2 r4 := r3
+| r3 r1 := r3
+| r3 r2 := r1
+| r3 r3 := r4
+| r3 r4 := r2
+| r4 r1 := r4
+| r4 r2 := r3
+| r4 r3 := r2
+| r4 r4 := r1
+
+theorem quo_left_ident : ∀ (r : quo), quo_mul r1 r = r :=
+begin
+assume r,
+cases r,
+repeat {exact rfl,}
+end
+
+theorem quo_right_ident : ∀ (r : quo), quo_mul r r1 = r :=
+begin
+assume r,
+cases r,
+repeat {exact rfl,}
+end
+
+theorem quo_mul_assoc :
+  ∀ (e1 e2 e3 : quo),
+    quo_mul (quo_mul e1 e2) e3 = quo_mul e1 (quo_mul e2 e3) :=
+begin
+assume e1 e2 e3,
+cases e1,
+repeat {
+  cases e2,
+  repeat {
+    cases e3,
+    repeat {exact rfl}
+  },
+},
+end
+
+instance : has_one quo := ⟨ r1 ⟩
+
+def quo_npow : ℕ → quo → quo
+| 0 x := 1
+| (nat.succ n') x := quo_mul x (quo_npow n' x)
+
+instance : monoid quo :=
+⟨
+  quo_mul,
+  quo_mul_assoc,
+  1,
+  quo_left_ident,
+  quo_right_ident,
+  quo_npow,
+⟩
+
+#reduce (1 : quo)
+#reduce (r2 * r2)
+
+def quo_inv : quo → quo
+| r1 := r1
+| r2 := r3
+| r3 := r2
+| r4 := r4
+
+instance : has_inv quo := ⟨ quo_inv ⟩
+
+#reduce r1^2
+
+def quo_div : quo → quo → quo := λ a b, a * b⁻¹
+
+instance : has_div quo := ⟨ quo_div ⟩
+
+def quo_zpow : ℤ → quo → quo
+| (int.of_nat n) r := quo_npow n r
+| (int.neg_succ_of_nat n) r := (quo_npow (n+1) r)⁻¹
+
+
+lemma quo_npow_zero : (∀ (x : quo), quo_npow 0 x = 1) :=
+   monoid.npow_zero'
+
+lemma quo_npow_succ : (∀ (n : ℕ) (x : quo), quo_npow n.succ x = x * quo_npow n x) :=
+  monoid.npow_succ'
+
+lemma quo_div_inv : (∀ (a b : quo), a / b = a * b⁻¹) :=
+begin
+assume a b,
+exact rfl,
+end
+
+lemma quo_zpow_non_neg : (∀ (n : ℕ) (a : quo), quo_zpow (int.of_nat n.succ) a = a * quo_zpow (int.of_nat n) a) :=
+begin
+assume n a,
+exact rfl,
+end
+
+def quo_zpow_neg : (∀ (n : ℕ) (a : quo), quo_zpow -[1+ n] a = (quo_zpow ↑(n.succ) a)⁻¹) :=
+begin
+assume n a,
+exact rfl,
+end
+
+instance quo_div_inv_monoid : div_inv_monoid quo :=
+⟨
+  quo_mul,
+  quo_mul_assoc,
+  1,
+  quo_left_ident,
+  quo_right_ident,
+  quo_npow,
+  quo_npow_zero,
+  quo_npow_succ,
+  quo_inv,
+  quo_div,
+  quo_div_inv,
+  quo_zpow
+⟩
+
+#reduce @quo_div_inv_monoid
+
+-- modulos = 3, base = 2, secrect_A = 1, secret_B = 2
+-- A base ^ secret_A
+#reduce (r2 ^ 1)
+-- B base ^ secret_B
+#reduce (r2 ^ 2)
+-- A (base ^ secret_B) ^ secret_A
+#reduce (r1 ^ 1)
+-- B (base ^ secret_A) ^ secret_B
+#reduce (r1 ^ 2)
+-- A and B share secret 1
